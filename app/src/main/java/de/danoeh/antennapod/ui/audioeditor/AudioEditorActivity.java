@@ -9,11 +9,14 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.Nullable;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.Player;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.recyclerview.widget.LinearLayoutManager;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import de.danoeh.antennapod.R;
 import de.danoeh.antennapod.databinding.ActivityAudioEditorBinding;
@@ -97,6 +100,13 @@ public class AudioEditorActivity extends ToolbarActivity implements CutRegionAda
         viewBinding.markCutStartButton.setOnClickListener(v -> markCutStart());
         viewBinding.markCutEndButton.setOnClickListener(v -> markCutEnd());
         viewBinding.saveButton.setOnClickListener(v -> exportEditedEpisode());
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                confirmExit();
+            }
+        });
 
         long mediaId = getIntent().getLongExtra(EXTRA_MEDIA_ID, -1);
         loadEpisode(mediaId);
@@ -311,10 +321,23 @@ public class AudioEditorActivity extends ToolbarActivity implements CutRegionAda
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            finish();
+            confirmExit();
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void confirmExit() {
+        if (cutRegions.isEmpty()) {
+            finish();
+            return;
+        }
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.audio_editor_discard_title)
+                .setMessage(R.string.audio_editor_discard_message)
+                .setPositiveButton(R.string.audio_editor_discard_confirm, (dialog, which) -> finish())
+                .setNegativeButton(R.string.cancel_label, null)
+                .show();
     }
 
     @Override

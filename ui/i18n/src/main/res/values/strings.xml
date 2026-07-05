@@ -915,6 +915,9 @@
     <string name="audio_editor_no_cut_start_marked">Mark a cut start first</string>
     <string name="audio_editor_cut_end_before_start">Cut end must be after cut start</string>
     <string name="audio_editor_loading_waveform">Analyzing audio…</string>
+    <string name="audio_editor_discard_title">Discard cuts?</string>
+    <string name="audio_editor_discard_message">You have marked cuts that have not been saved. Leaving now will discard them.</string>
+    <string name="audio_editor_discard_confirm">Discard</string>
 
     <string name="filter">Filter</string>
     <string name="hide_is_favorite_label">Is favorite</string>
