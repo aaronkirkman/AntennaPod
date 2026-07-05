@@ -13,6 +13,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.input.CountingInputStream;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.ParseException;
@@ -56,7 +57,10 @@ public class LocalFeedUpdater {
                                   @Nullable UpdaterProgressListener updaterProgressListener) {
         try {
             String uriString = feed.getDownloadUrl().replace(Feed.PREFIX_LOCAL_FOLDER, "");
-            DocumentFile documentFolder = DocumentFile.fromTreeUri(context, Uri.parse(uriString));
+            Uri folderUri = Uri.parse(uriString);
+            DocumentFile documentFolder = "file".equals(folderUri.getScheme())
+                    ? DocumentFile.fromFile(new File(folderUri.getPath()))
+                    : DocumentFile.fromTreeUri(context, folderUri);
             if (documentFolder == null) {
                 throw new IOException("Unable to retrieve document tree. "
                         + "Try re-connecting the folder on the podcast info page.");

@@ -31,6 +31,7 @@ import de.danoeh.antennapod.model.feed.FeedItem;
 import de.danoeh.antennapod.model.feed.FeedMedia;
 import de.danoeh.antennapod.storage.preferences.UserPreferences;
 import de.danoeh.antennapod.ui.appstartintent.MediaButtonStarter;
+import de.danoeh.antennapod.ui.audioeditor.AudioEditorActivity;
 import de.danoeh.antennapod.ui.view.LocalDeleteModal;
 import org.greenrobot.eventbus.EventBus;
 
@@ -72,6 +73,7 @@ public class FeedItemMenuHandler {
         boolean canRemoveFavorite = false;
         boolean canShowTranscript = false;
         boolean canShowSocialInteract = false;
+        boolean canEditAudio = false;
 
         for (FeedItem item : selectedItems) {
             final boolean hasMedia = item.getMedia() != null;
@@ -92,6 +94,7 @@ public class FeedItemMenuHandler {
             canRemoveFavorite |= item.isTagged(FeedItem.TAG_FAVORITE);
             canShowTranscript |= item.hasTranscript();
             canShowSocialInteract |= item.getSocialInteractUrl() != null;
+            canEditAudio |= hasMedia && item.getMedia().isDownloaded();
         }
 
         if (selectedItems.size() > 1) {
@@ -99,6 +102,7 @@ public class FeedItemMenuHandler {
             canShare = false;
             canShowTranscript = false;
             canShowSocialInteract = false;
+            canEditAudio = false;
             if (canAddFavorite) {
                 canRemoveFavorite = false;
             }
@@ -129,6 +133,7 @@ public class FeedItemMenuHandler {
         setItemVisibility(menu, R.id.remove_item, canDelete);
         setItemVisibility(menu, R.id.download_item, canDownload);
         setItemVisibility(menu, R.id.transcript_item, canShowTranscript);
+        setItemVisibility(menu, R.id.edit_audio_item, canEditAudio);
 
         if (selectedItems.size() == 1 && selectedItems.get(0).getFeed().getState() == Feed.STATE_NOT_SUBSCRIBED) {
             setItemVisibility(menu, R.id.mark_read_item, false);
@@ -224,6 +229,8 @@ public class FeedItemMenuHandler {
         } else if (menuItemId == R.id.share_item) {
             ShareDialog shareDialog = ShareDialog.newInstance(selectedItem);
             shareDialog.show((fragment.getActivity().getSupportFragmentManager()), "ShareEpisodeDialog");
+        } else if (menuItemId == R.id.edit_audio_item) {
+            context.startActivity(AudioEditorActivity.newIntent(context, selectedItem.getMedia().getId()));
         } else {
             Log.d(TAG, "Unknown menuItemId: " + menuItemId);
             return false;

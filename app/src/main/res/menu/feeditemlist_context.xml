@@ -36,6 +36,11 @@
         android:title="@string/delete_label" />
 
     <item
+        android:id="@+id/edit_audio_item"
+        android:menuCategory="container"
+        android:title="@string/edit_audio_label" />
+
+    <item
         android:id="@+id/add_to_favorites_item"
         android:menuCategory="container"
         android:title="@string/add_to_favorite_label" />

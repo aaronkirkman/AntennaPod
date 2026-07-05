@@ -4,7 +4,11 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.DocumentsContract;
+import android.webkit.MimeTypeMap;
 
+import org.apache.commons.io.FilenameUtils;
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,6 +24,9 @@ public class FastDocumentFile {
     private final long lastModified;
 
     public static List<FastDocumentFile> list(Context context, Uri folderUri) {
+        if ("file".equals(folderUri.getScheme())) {
+            return listLocalDirectory(folderUri);
+        }
         Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(folderUri,
                 DocumentsContract.getDocumentId(folderUri));
         Cursor cursor = context.getContentResolver().query(childrenUri, new String[] {
@@ -44,6 +51,22 @@ public class FastDocumentFile {
             }
         } finally {
             cursor.close();
+        }
+        return list;
+    }
+
+    private static List<FastDocumentFile> listLocalDirectory(Uri folderUri) {
+        ArrayList<FastDocumentFile> list = new ArrayList<>();
+        File folder = new File(folderUri.getPath());
+        File[] files = folder.listFiles();
+        if (files == null) {
+            return list;
+        }
+        for (File file : files) {
+            String extension = FilenameUtils.getExtension(file.getName());
+            String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+            list.add(new FastDocumentFile(file.getName(), mimeType, Uri.fromFile(file),
+                    file.length(), file.lastModified()));
         }
         return list;
     }

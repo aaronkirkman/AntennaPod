@@ -269,6 +269,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name="de.danoeh.antennapod.ui.audioeditor.AudioEditorActivity"
+            android:label="@string/edit_audio_label"
+            android:exported="false" />
+
         <activity android:name=".activity.SelectSubscriptionActivity"
             android:label="@string/shortcut_subscription_label"
             android:icon="@drawable/ic_shortcut_subscriptions"

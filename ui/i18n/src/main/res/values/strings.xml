@@ -901,6 +901,21 @@
     <string name="local_feed_description">This virtual podcast was created by adding a folder to AntennaPod.</string>
     <string name="unable_to_start_system_file_manager">Unable to start system file manager</string>
 
+    <!-- Audio editor -->
+    <string name="edited_episodes_feed_title">Edited episodes</string>
+    <string name="edit_audio_label">Edit audio</string>
+    <string name="audio_editor_mark_cut_start">Mark cut start</string>
+    <string name="audio_editor_mark_cut_end">Mark cut end</string>
+    <string name="audio_editor_save">Save</string>
+    <string name="audio_editor_cut_list_title">Cuts to remove</string>
+    <string name="audio_editor_title_suffix"> (edited)</string>
+    <string name="audio_editor_exporting">Removing ads…</string>
+    <string name="audio_editor_export_success">Edited episode saved</string>
+    <string name="audio_editor_export_failure">Failed to save edited episode</string>
+    <string name="audio_editor_no_cut_start_marked">Mark a cut start first</string>
+    <string name="audio_editor_cut_end_before_start">Cut end must be after cut start</string>
+    <string name="audio_editor_loading_waveform">Analyzing audio…</string>
+
     <string name="filter">Filter</string>
     <string name="hide_is_favorite_label">Is favorite</string>
     <string name="not_favorite">Not favorite</string>
