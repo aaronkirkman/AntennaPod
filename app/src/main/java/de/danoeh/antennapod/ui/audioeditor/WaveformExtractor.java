@@ -11,10 +11,12 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 /**
- * Decodes an audio file once and downsamples it to a fixed number of amplitude buckets,
- * so a full-episode waveform can be drawn without holding the decoded PCM data in memory.
+ * Computes a fixed number of amplitude buckets representing a full episode's waveform.
+ * Rather than decoding the entire file, it seeks to each bucket's timestamp and decodes only
+ * a short window there, so the time this takes stays roughly constant regardless of episode length.
  */
 public class WaveformExtractor {
+    private static final long SAMPLE_WINDOW_US = 150_000L;
 
     private WaveformExtractor() {
     }
@@ -35,13 +37,16 @@ public class WaveformExtractor {
             MediaFormat format = extractor.getTrackFormat(trackIndex);
             extractor.selectTrack(trackIndex);
             long durationUs = format.containsKey(MediaFormat.KEY_DURATION) ? format.getLong(MediaFormat.KEY_DURATION) : 0;
+            if (durationUs <= 0) {
+                throw new IOException("Unknown duration for " + path);
+            }
 
             String mime = format.getString(MediaFormat.KEY_MIME);
             MediaCodec codec = MediaCodec.createDecoderByType(mime);
             try {
                 codec.configure(format, null, null, 0);
                 codec.start();
-                return decode(extractor, codec, durationUs, numBuckets, listener);
+                return decodeSparse(extractor, codec, durationUs, numBuckets, listener);
             } finally {
                 codec.stop();
                 codec.release();
@@ -62,20 +67,40 @@ public class WaveformExtractor {
         return -1;
     }
 
-    private static float[] decode(MediaExtractor extractor, MediaCodec codec, long durationUs,
-                                  int numBuckets, ProgressListener listener) {
+    private static float[] decodeSparse(MediaExtractor extractor, MediaCodec codec, long durationUs,
+                                        int numBuckets, ProgressListener listener) {
         float[] buckets = new float[numBuckets];
+        long bucketDurationUs = durationUs / numBuckets;
         MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
-        boolean inputDone = false;
-        boolean outputDone = false;
 
-        while (!outputDone) {
+        for (int bucket = 0; bucket < numBuckets; bucket++) {
+            long targetUs = bucket * bucketDurationUs;
+            long windowEndUs = targetUs + SAMPLE_WINDOW_US;
+            extractor.seekTo(targetUs, MediaExtractor.SEEK_TO_CLOSEST_SYNC);
+            codec.flush();
+            decodeWindow(extractor, codec, windowEndUs, info, buckets, bucket);
+
+            if (listener != null) {
+                listener.onProgress((bucket + 1) / (float) numBuckets);
+            }
+        }
+
+        normalize(buckets);
+        return buckets;
+    }
+
+    private static void decodeWindow(MediaExtractor extractor, MediaCodec codec, long windowEndUs,
+                                     MediaCodec.BufferInfo info, float[] buckets, int bucketIndex) {
+        boolean inputDone = false;
+        boolean windowDone = false;
+
+        while (!windowDone) {
             if (!inputDone) {
                 int inputBufferId = codec.dequeueInputBuffer(10000);
                 if (inputBufferId >= 0) {
                     ByteBuffer inputBuffer = codec.getInputBuffer(inputBufferId);
                     int sampleSize = inputBuffer != null ? extractor.readSampleData(inputBuffer, 0) : -1;
-                    if (sampleSize < 0) {
+                    if (sampleSize < 0 || extractor.getSampleTime() > windowEndUs) {
                         codec.queueInputBuffer(inputBufferId, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
                         inputDone = true;
                     } else {
@@ -87,22 +112,37 @@ public class WaveformExtractor {
 
             int outputBufferId = codec.dequeueOutputBuffer(info, 10000);
             if (outputBufferId >= 0) {
-                if (info.size > 0 && durationUs > 0) {
+                if (info.size > 0) {
                     ByteBuffer outputBuffer = codec.getOutputBuffer(outputBufferId);
                     if (outputBuffer != null) {
-                        addSamplesToBuckets(outputBuffer, info, durationUs, buckets);
+                        updateBucketMax(outputBuffer, info, buckets, bucketIndex);
                     }
                 }
+                boolean isEos = (info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0;
                 codec.releaseOutputBuffer(outputBufferId, false);
-                if (listener != null && durationUs > 0) {
-                    listener.onProgress(Math.min(1f, info.presentationTimeUs / (float) durationUs));
-                }
-                if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
-                    outputDone = true;
+                if (isEos || info.presentationTimeUs >= windowEndUs) {
+                    windowDone = true;
                 }
             }
         }
+    }
 
+    private static void updateBucketMax(ByteBuffer outputBuffer, MediaCodec.BufferInfo info,
+                                        float[] buckets, int bucketIndex) {
+        ByteBuffer buffer = outputBuffer.duplicate();
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        buffer.position(info.offset);
+        buffer.limit(info.offset + info.size);
+        while (buffer.remaining() >= 2) {
+            short sample = buffer.getShort();
+            float amplitude = Math.abs(sample) / 32768f;
+            if (amplitude > buckets[bucketIndex]) {
+                buckets[bucketIndex] = amplitude;
+            }
+        }
+    }
+
+    private static void normalize(float[] buckets) {
         float max = 0f;
         for (float bucket : buckets) {
             max = Math.max(max, bucket);
@@ -110,25 +150,6 @@ public class WaveformExtractor {
         if (max > 0f) {
             for (int i = 0; i < buckets.length; i++) {
                 buckets[i] /= max;
-            }
-        }
-        return buckets;
-    }
-
-    private static void addSamplesToBuckets(ByteBuffer outputBuffer, MediaCodec.BufferInfo info,
-                                            long durationUs, float[] buckets) {
-        ByteBuffer buffer = outputBuffer.duplicate();
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
-        buffer.position(info.offset);
-        buffer.limit(info.offset + info.size);
-        int sampleCount = buffer.remaining() / 2;
-        int bucketIndex = (int) ((info.presentationTimeUs / (float) durationUs) * buckets.length);
-        bucketIndex = Math.max(0, Math.min(buckets.length - 1, bucketIndex));
-        for (int i = 0; i < sampleCount; i++) {
-            short sample = buffer.getShort();
-            float amplitude = Math.abs(sample) / 32768f;
-            if (amplitude > buckets[bucketIndex]) {
-                buckets[bucketIndex] = amplitude;
             }
         }
     }

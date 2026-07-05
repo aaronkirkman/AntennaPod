@@ -155,8 +155,15 @@ public class AudioEditorActivity extends ToolbarActivity implements CutRegionAda
     }
 
     private void loadWaveform() {
-        disposable = Single.fromCallable(() ->
-                        WaveformExtractor.extract(this, media.getLocalFileUrl(), WAVEFORM_BUCKETS, null))
+        disposable = Single.fromCallable(() -> {
+                    float[] cached = WaveformCache.read(this, media.getLocalFileUrl(), WAVEFORM_BUCKETS);
+                    if (cached != null) {
+                        return cached;
+                    }
+                    float[] extracted = WaveformExtractor.extract(this, media.getLocalFileUrl(), WAVEFORM_BUCKETS, null);
+                    WaveformCache.write(this, media.getLocalFileUrl(), WAVEFORM_BUCKETS, extracted);
+                    return extracted;
+                })
                 .subscribeOn(Schedulers.computation())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(amplitudes -> {
