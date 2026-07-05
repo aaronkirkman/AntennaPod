@@ -146,13 +146,12 @@ public class AudioEditorActivity extends ToolbarActivity implements CutRegionAda
 
     private void loadWaveform() {
         disposable = Single.fromCallable(() ->
-                        WaveformExtractor.extract(media.getLocalFileUrl(), WAVEFORM_BUCKETS, null))
+                        WaveformExtractor.extract(this, media.getLocalFileUrl(), WAVEFORM_BUCKETS, null))
                 .subscribeOn(Schedulers.computation())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(amplitudes -> {
                     pendingAmplitudes = amplitudes;
                     applyWaveformIfReady();
-                    hideLoading();
                 }, error -> {
                     error.printStackTrace();
                     Toast.makeText(this, error.getMessage(), Toast.LENGTH_LONG).show();
@@ -163,6 +162,7 @@ public class AudioEditorActivity extends ToolbarActivity implements CutRegionAda
     private void applyWaveformIfReady() {
         if (pendingAmplitudes != null && durationMs > 0) {
             viewBinding.waveformView.setAmplitudes(pendingAmplitudes, durationMs);
+            hideLoading();
         }
     }
 

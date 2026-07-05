@@ -1,8 +1,10 @@
 package de.danoeh.antennapod.ui.audioeditor;
 
+import android.content.Context;
 import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
+import android.net.Uri;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -21,10 +23,11 @@ public class WaveformExtractor {
         void onProgress(float fraction);
     }
 
-    public static float[] extract(String path, int numBuckets, ProgressListener listener) throws IOException {
+    public static float[] extract(Context context, String path, int numBuckets,
+                                  ProgressListener listener) throws IOException {
         MediaExtractor extractor = new MediaExtractor();
         try {
-            extractor.setDataSource(path);
+            extractor.setDataSource(context, Uri.parse(path), null);
             int trackIndex = selectAudioTrack(extractor);
             if (trackIndex < 0) {
                 throw new IOException("No audio track found in " + path);
