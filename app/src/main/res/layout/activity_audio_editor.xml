@@ -28,12 +28,30 @@
         android:orientation="horizontal">
 
         <ImageButton
-            android:id="@+id/playPauseButton"
+            android:id="@+id/rewindButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/rewind_label"
+            android:src="@drawable/ic_fast_rewind" />
+
+        <ImageButton
+            android:id="@+id/playPauseButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/pause_label"
             android:src="@drawable/ic_play_48dp" />
+
+        <ImageButton
+            android:id="@+id/fastForwardButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/fast_forward_label"
+            android:src="@drawable/ic_fast_forward" />
 
     </LinearLayout>
 

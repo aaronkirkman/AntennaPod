@@ -38,12 +38,14 @@ public class AudioEditorActivity extends ToolbarActivity implements CutRegionAda
     private static final String EXTRA_MEDIA_ID = "media_id";
     private static final int WAVEFORM_BUCKETS = 300;
     private static final long PLAYHEAD_UPDATE_INTERVAL_MS = 200;
+    private static final long SKIP_MS = 5000;
 
     private ActivityAudioEditorBinding viewBinding;
     private ExoPlayer player;
     private FeedItem feedItem;
     private FeedMedia media;
     private long durationMs;
+    @Nullable private float[] pendingAmplitudes;
     private long pendingCutStartMs = -1;
     private boolean cutStartMarked = false;
     private final List<CutRegion> cutRegions = new ArrayList<>();
@@ -85,9 +87,13 @@ public class AudioEditorActivity extends ToolbarActivity implements CutRegionAda
         viewBinding.waveformView.setOnSeekListener(positionMs -> {
             if (player != null) {
                 player.seekTo(positionMs);
+                viewBinding.waveformView.setPlayheadMs(positionMs);
+                updateTimeLabel(positionMs);
             }
         });
         viewBinding.playPauseButton.setOnClickListener(v -> togglePlayback());
+        viewBinding.rewindButton.setOnClickListener(v -> seekBy(-SKIP_MS));
+        viewBinding.fastForwardButton.setOnClickListener(v -> seekBy(SKIP_MS));
         viewBinding.markCutStartButton.setOnClickListener(v -> markCutStart());
         viewBinding.markCutEndButton.setOnClickListener(v -> markCutEnd());
         viewBinding.saveButton.setOnClickListener(v -> exportEditedEpisode());
@@ -126,6 +132,15 @@ public class AudioEditorActivity extends ToolbarActivity implements CutRegionAda
                     handler.post(playheadUpdater);
                 }
             }
+
+            @Override
+            public void onPlaybackStateChanged(int playbackState) {
+                if (playbackState == Player.STATE_READY && durationMs <= 0) {
+                    durationMs = player.getDuration();
+                    updateTimeLabel(player.getCurrentPosition());
+                    applyWaveformIfReady();
+                }
+            }
         });
     }
 
@@ -135,15 +150,20 @@ public class AudioEditorActivity extends ToolbarActivity implements CutRegionAda
                 .subscribeOn(Schedulers.computation())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(amplitudes -> {
-                    durationMs = media.getDuration();
-                    viewBinding.waveformView.setAmplitudes(amplitudes, durationMs);
-                    updateTimeLabel(0);
+                    pendingAmplitudes = amplitudes;
+                    applyWaveformIfReady();
                     hideLoading();
                 }, error -> {
                     error.printStackTrace();
                     Toast.makeText(this, error.getMessage(), Toast.LENGTH_LONG).show();
                     hideLoading();
                 });
+    }
+
+    private void applyWaveformIfReady() {
+        if (pendingAmplitudes != null && durationMs > 0) {
+            viewBinding.waveformView.setAmplitudes(pendingAmplitudes, durationMs);
+        }
     }
 
     private void togglePlayback() {
@@ -155,6 +175,16 @@ public class AudioEditorActivity extends ToolbarActivity implements CutRegionAda
         } else {
             player.play();
         }
+    }
+
+    private void seekBy(long deltaMs) {
+        if (player == null) {
+            return;
+        }
+        long newPositionMs = Math.max(0, Math.min(durationMs, player.getCurrentPosition() + deltaMs));
+        player.seekTo(newPositionMs);
+        viewBinding.waveformView.setPlayheadMs(newPositionMs);
+        updateTimeLabel(newPositionMs);
     }
 
     private void markCutStart() {
@@ -192,6 +222,8 @@ public class AudioEditorActivity extends ToolbarActivity implements CutRegionAda
     public void onCutRegionTapped(CutRegion region) {
         if (player != null) {
             player.seekTo(region.startMs);
+            viewBinding.waveformView.setPlayheadMs(region.startMs);
+            updateTimeLabel(region.startMs);
         }
     }
 
