@@ -2,6 +2,7 @@
 agp = "8.11.0"
 kotlin = "2.3.20"
 media3 = "1.9.0"
+tensorflow-lite-task-audio = "0.4.4"
 wear-compose = "1.6.0"
 compose = "1.7.5"
 lifecycle-runtime-compose = "2.8.7"
@@ -77,6 +78,7 @@ awaitility = { module = "org.awaitility:awaitility", version = "3.1.6" }
 junit = { module = "junit:junit", version = "4.13" }
 robolectric = { module = "org.robolectric:robolectric", version = "4.16" }
 mockito-core = { module = "org.mockito:mockito-core", version = "5.15.2" }
+tensorflow-lite-task-audio = { module = "org.tensorflow:tensorflow-lite-task-audio", version.ref = "tensorflow-lite-task-audio" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
