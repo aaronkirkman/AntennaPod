@@ -60,6 +60,7 @@ public class AudioEditorActivity extends ToolbarActivity implements CutRegionAda
         @Override
         public void run() {
             if (player != null) {
+                skipOverCutRegionIfNeeded();
                 viewBinding.waveformView.setPlayheadMs(player.getCurrentPosition());
                 updateTimeLabel(player.getCurrentPosition());
                 if (player.isPlaying()) {
@@ -202,6 +203,19 @@ public class AudioEditorActivity extends ToolbarActivity implements CutRegionAda
         player.seekTo(newPositionMs);
         viewBinding.waveformView.setPlayheadMs(newPositionMs);
         updateTimeLabel(newPositionMs);
+    }
+
+    private void skipOverCutRegionIfNeeded() {
+        if (!player.isPlaying()) {
+            return;
+        }
+        long positionMs = player.getCurrentPosition();
+        for (CutRegion region : cutRegions) {
+            if (positionMs >= region.startMs && positionMs < region.endMs) {
+                player.seekTo(region.endMs);
+                return;
+            }
+        }
     }
 
     private void markCutStart() {
