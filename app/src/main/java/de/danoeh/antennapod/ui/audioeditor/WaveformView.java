@@ -19,11 +19,14 @@ import java.util.List;
  * Tapping the view seeks to the tapped position via {@link #setOnSeekListener(OnSeekListener)}.
  */
 public class WaveformView extends View {
+    private static final float BAR_WIDTH_DP = 6f;
+
     private float[] amplitudes = new float[0];
     private long durationMs = 0;
     private long playheadMs = 0;
     private List<CutRegion> cutRegions = Collections.emptyList();
     private OnSeekListener onSeekListener;
+    private float barWidthPx;
 
     private final Paint barPaint = new Paint();
     private final Paint cutRegionPaint = new Paint();
@@ -56,11 +59,21 @@ public class WaveformView extends View {
         playheadPaint.setAntiAlias(true);
         playheadPaint.setColor(ThemeUtils.getColorFromAttr(getContext(), android.R.attr.colorAccent));
         playheadPaint.setStrokeWidth(4f);
+        barWidthPx = BAR_WIDTH_DP * getResources().getDisplayMetrics().density;
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int desiredWidth = (int) (amplitudes.length * barWidthPx);
+        int width = resolveSizeAndState(desiredWidth, widthMeasureSpec, 0);
+        int height = MeasureSpec.getSize(heightMeasureSpec);
+        setMeasuredDimension(width, height);
     }
 
     public void setAmplitudes(float[] amplitudes, long durationMs) {
         this.amplitudes = amplitudes;
         this.durationMs = durationMs;
+        requestLayout();
         invalidate();
     }
 

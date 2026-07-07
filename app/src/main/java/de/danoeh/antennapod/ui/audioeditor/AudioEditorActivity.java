@@ -63,6 +63,7 @@ public class AudioEditorActivity extends ToolbarActivity implements CutRegionAda
                 skipOverCutRegionIfNeeded();
                 viewBinding.waveformView.setPlayheadMs(player.getCurrentPosition());
                 updateTimeLabel(player.getCurrentPosition());
+                followPlayhead(player.getCurrentPosition());
                 if (player.isPlaying()) {
                     handler.postDelayed(this, PLAYHEAD_UPDATE_INTERVAL_MS);
                 }
@@ -203,6 +204,21 @@ public class AudioEditorActivity extends ToolbarActivity implements CutRegionAda
         player.seekTo(newPositionMs);
         viewBinding.waveformView.setPlayheadMs(newPositionMs);
         updateTimeLabel(newPositionMs);
+        followPlayhead(newPositionMs);
+    }
+
+    private void followPlayhead(long positionMs) {
+        if (durationMs <= 0) {
+            return;
+        }
+        int totalWidth = viewBinding.waveformView.getWidth();
+        int viewportWidth = viewBinding.waveformScrollView.getWidth();
+        if (totalWidth == 0 || viewportWidth == 0) {
+            return;
+        }
+        int playheadX = (int) ((positionMs / (float) durationMs) * totalWidth);
+        int targetScrollX = Math.max(0, playheadX - viewportWidth / 2);
+        viewBinding.waveformScrollView.scrollTo(targetScrollX, 0);
     }
 
     private void skipOverCutRegionIfNeeded() {
@@ -255,6 +271,7 @@ public class AudioEditorActivity extends ToolbarActivity implements CutRegionAda
             player.seekTo(region.startMs);
             viewBinding.waveformView.setPlayheadMs(region.startMs);
             updateTimeLabel(region.startMs);
+            followPlayhead(region.startMs);
         }
     }
 

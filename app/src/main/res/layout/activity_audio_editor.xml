@@ -11,10 +11,18 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <de.danoeh.antennapod.ui.audioeditor.WaveformView
-            android:id="@+id/waveformView"
+        <HorizontalScrollView
+            android:id="@+id/waveformScrollView"
             android:layout_width="match_parent"
-            android:layout_height="150dp" />
+            android:layout_height="150dp"
+            android:scrollbars="none">
+
+            <de.danoeh.antennapod.ui.audioeditor.WaveformView
+                android:id="@+id/waveformView"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent" />
+
+        </HorizontalScrollView>
 
         <TextView
             android:id="@+id/timeLabel"
