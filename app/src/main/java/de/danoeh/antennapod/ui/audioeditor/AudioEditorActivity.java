@@ -39,7 +39,7 @@ import java.util.UUID;
 
 public class AudioEditorActivity extends ToolbarActivity implements CutRegionAdapter.Listener {
     private static final String EXTRA_MEDIA_ID = "media_id";
-    private static final int WAVEFORM_BUCKETS = 300;
+    private static final int WAVEFORM_BUCKETS = 1000;
     private static final long PLAYHEAD_UPDATE_INTERVAL_MS = 200;
     private static final long SKIP_MS = 5000;
 
