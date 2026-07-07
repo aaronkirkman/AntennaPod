@@ -1,6 +1,52 @@
 # ML-based ad detection — plan
 
-Status: planned, not started. Builds on the audio editor (`app/src/main/java/de/danoeh/antennapod/ui/audioeditor/`).
+Status: in progress (steps 1-4 of 6 implemented, uncommitted). Builds on the audio editor
+(`app/src/main/java/de/danoeh/antennapod/ui/audioeditor/`). Branch: `feature/audio-editor`.
+
+## Progress
+
+Implemented so far (compiles clean, but **not yet committed to git** — sitting as uncommitted
+files/changes in the working tree on branch `feature/audio-editor`):
+
+1. **Done** — Bundled YAMNet TFLite model at `app/src/main/assets/models/yamnet.tflite`
+   (~4MB, Apache 2.0, from `storage.googleapis.com/download.tensorflow.org`), plus the
+   `org.tensorflow:tensorflow-lite-task-audio:0.4.4` dependency (added to
+   `gradle/libs.versions.toml` and `app/build.gradle`) and `noCompress += ["tflite"]` packaging
+   option. *This part IS already committed* (commit "Bundle pretrained YAMNet model for
+   on-device audio ad detection").
+2. **Done** — `AudioSignalAnalyzer.java`: steps through an episode at a fixed time stride,
+   decodes a native-format PCM window per step (reusing the seek+flush approach from
+   `WaveformExtractor`), downmixes/resamples to 16kHz mono, runs YAMNet, and records the
+   top-scoring audio tag + an RMS loudness estimate per window (`WindowResult`). Factored a
+   shared `AudioTrackUtils.selectAudioTrack()` out of `WaveformExtractor` in the process.
+3. **Done** — `TranscriptAdScanner.java` + `AdCandidateRegion.java`: scans transcript segments
+   (via the existing `TranscriptUtils.loadTranscript`) against strong/medium regex keyword
+   tiers ("sponsored by", "promo code", "% off", etc.), scores matches, merges nearby matching
+   segments into candidate regions.
+4. **Done** — `AdDetectionFusion.java`: combines the audio timeline and transcript candidates —
+   audio windows count as ad-like via label keyword match ("music"/"jingle"/"advertis"/"theme")
+   or a loudness jump (≥6dB vs. recent average); transcript-candidate confidence gets boosted
+   when it overlaps an audio-flagged region; audio-only regions are kept too (covers the
+   no-transcript fallback). Accepted regions above a confidence threshold get merged and
+   converted to the same `CutRegion` type the manual editor already uses. All thresholds are
+   named constants at the top of the file, expected to need tuning in step 6.
+
+**Not yet done:**
+
+5. **Next up** — Add a "Detect ads" button to `AudioEditorActivity` that runs
+   `TranscriptUtils.loadTranscript` (if available) + `AudioSignalAnalyzer.analyze` +
+   `AdDetectionFusion.fuse` on demand (background thread — this is real work, not instant),
+   and populates the existing `cutRegions` list/adapter with the suggestions for review. This
+   is the step that makes any of the above reachable/testable from the running app — nothing
+   before this point has a UI hook.
+6. **After that** — Verify end-to-end on real episodes (with and without a published
+   transcript), tune the confidence thresholds in `AdDetectionFusion` and `TranscriptAdScanner`
+   based on false positive/negative rate.
+
+To resume: pick up at step 5 (task #14 in the task list — "Add 'Detect ads' button and wire
+into AudioEditorActivity"). Steps 2-4's files are uncommitted; check `git status` on
+`feature/audio-editor` to see them, review/test, and commit before or alongside step 5's UI
+work, per the user's established pattern of committing only when explicitly asked.
 
 ## Goal
 
