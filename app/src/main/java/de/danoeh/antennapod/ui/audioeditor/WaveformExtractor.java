@@ -30,7 +30,7 @@ public class WaveformExtractor {
         MediaExtractor extractor = new MediaExtractor();
         try {
             extractor.setDataSource(context, Uri.parse(path), null);
-            int trackIndex = selectAudioTrack(extractor);
+            int trackIndex = AudioTrackUtils.selectAudioTrack(extractor);
             if (trackIndex < 0) {
                 throw new IOException("No audio track found in " + path);
             }
@@ -54,17 +54,6 @@ public class WaveformExtractor {
         } finally {
             extractor.release();
         }
-    }
-
-    private static int selectAudioTrack(MediaExtractor extractor) {
-        for (int i = 0; i < extractor.getTrackCount(); i++) {
-            MediaFormat format = extractor.getTrackFormat(i);
-            String mime = format.getString(MediaFormat.KEY_MIME);
-            if (mime != null && mime.startsWith("audio/")) {
-                return i;
-            }
-        }
-        return -1;
     }
 
     private static float[] decodeSparse(MediaExtractor extractor, MediaCodec codec, long durationUs,
